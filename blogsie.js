@@ -84,7 +84,7 @@ const init = () => {
 	spotLight.shadow.camera.near = 1;
 	spotLight.shadow.camera.far = 50;
 
-	// scene.add( spotLight );
+	scene.add( spotLight );
 	spotLight.position.set(0, 200, 200);
 
 	// // spotLight.lookAt( scene.position );
@@ -92,10 +92,10 @@ const init = () => {
 
 	var lightAbove2 = new THREE.DirectionalLight(0xffffff, 1);
 	lightAbove2.position.set(0, 0.25, -1).normalize();
-	scene.add( lightAbove2 );
+	// scene.add( lightAbove2 );
 
-	// var lightHelper = new THREE.SpotLightHelper( spotLight );
-	// scene.add( lightHelper );
+	var lightHelper = new THREE.SpotLightHelper( spotLight );
+	scene.add( lightHelper );
 
 
 	// var geometry = new THREE.TorusKnotGeometry( 14, 1, 150, 20 );
@@ -208,6 +208,7 @@ const render = (time) => {
 
 	terrain.update(time);
 
+	torusKnot.rotation.x -= 0.02;
 	torusKnot.rotation.z += 0.01;
 
 	renderer.render( scene, camera );
@@ -240,27 +241,52 @@ class Terrain {
 		this.meshZ = 0;
 		this.meshZClamped = 0;
 
-		let geometry = new THREE.PlaneGeometry(this.terrainWidth, this.terrainDepth, this.unitsWidth - 1, this.unitsDepth - 1);
-		geometry.rotateX( - Math.PI / 2 );
 
-		let vertices = geometry.vertices
+		let d = 50;
+		let w = 50;
+		let h = 50;
 
-		con.log("terrain vertices:", vertices);
+		var geometry = new THREE.Geometry();
+        // vertices
+        geometry.vertices.push(new THREE.Vector3(-w, 0, -d));	// 0
+        geometry.vertices.push(new THREE.Vector3(w, 0, -d));	// 1
+        geometry.vertices.push(new THREE.Vector3(w, 0, d));		// 2
+        geometry.vertices.push(new THREE.Vector3(-w, 0, d));	// 3
 
-		let heights = [];
-		for (let i = 0, l = vertices.length; i < l; i ++) {
-			// let v = vertices[i];
-			// let x = i % this.unitsWidth;
-			// let z = Math.floor(i / this.unitsDepth);
-			heights[i] = Math.random() * 20;
-			vertices[i].y = heights[i];
-		}
+        // faces
+        // geometry.faces.push(new THREE.Face3(0, 1, 2));
+        // geometry.faces.push(new THREE.Face3(0, 2, 3));
+        // geometry.faces.push(new THREE.Face3(0, 2, 5));
+        // geometry.faces.push(new THREE.Face3(0, 2, 3));
+        // geometry.faces.push(new THREE.Face3(1, 4, 5));
+        geometry.faces.push(new THREE.Face3(1, 3, 2));
+        geometry.faces.push(new THREE.Face3(1, 0, 3));
+        // geometry.faces.push(new THREE.Face3(1, 2, 3));
+        // normals
+        geometry.computeFaceNormals();
+        geometry.computeVertexNormals();
 
-		this.vertices = vertices;
-		this.heights = heights;
+        
 
 
-		var diffuseColor = 0x7799aa;
+
+
+		// con.log("terrain vertices:", vertices);
+
+		// let heights = [];
+		// for (let i = 0, l = vertices.length; i < l; i ++) {
+		// 	// let v = vertices[i];
+		// 	// let x = i % this.unitsWidth;
+		// 	// let z = Math.floor(i / this.unitsDepth);
+		// 	heights[i] = Math.random() * 20;
+		// 	vertices[i].y = heights[i];
+		// }
+
+		// this.vertices = vertices;
+		// this.heights = heights;
+
+
+		var diffuseColor = 0xd0d0a0;
 
 		var material;
 		
@@ -282,6 +308,8 @@ class Terrain {
 			shading: THREE.SmoothShading,
 			// envMap: 1//alphaIndex % 2 === 0 ? null : reflectionCube
 		} );
+
+		material.side = THREE.DoubleSide
 
 		// material = new THREE.MeshBasicMaterial( {
 		// 	// map: imgTexture,
@@ -332,7 +360,7 @@ class Terrain {
 
 		this.meshZ += 0.01;
 		// this.meshZClamped = this.meshZ;
-		this.mesh.rotation.y = this.meshZ;
+		// this.mesh.rotation.z = this.meshZ;
 	}
 }
 
