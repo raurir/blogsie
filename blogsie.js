@@ -240,19 +240,20 @@ class Terrain {
 		this.meshZ = 0;
 		this.meshZClamped = 0;
 
-		let geometry = new THREE.PlaneBufferGeometry(this.terrainWidth, this.terrainDepth, this.unitsWidth - 1, this.unitsDepth - 1);
+		let geometry = new THREE.PlaneGeometry(this.terrainWidth, this.terrainDepth, this.unitsWidth - 1, this.unitsDepth - 1);
 		geometry.rotateX( - Math.PI / 2 );
 
-		let vertices = geometry.attributes.position.array;
+		let vertices = geometry.vertices
 
-		// con.log("terrain vertices:", vertices.length);
+		con.log("terrain vertices:", vertices);
 
 		let heights = [];
-		for (let i = 0, j = 0, l = vertices.length; j < l; i ++, j += 3) {
-			let x = i % this.unitsWidth;
-			let z = Math.floor(i / this.unitsDepth);
+		for (let i = 0, l = vertices.length; i < l; i ++) {
+			// let v = vertices[i];
+			// let x = i % this.unitsWidth;
+			// let z = Math.floor(i / this.unitsDepth);
 			heights[i] = Math.random() * 20;
-			vertices[j + 1] = heights[i];
+			vertices[i].y = heights[i];
 		}
 
 		this.vertices = vertices;
