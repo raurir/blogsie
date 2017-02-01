@@ -18,7 +18,8 @@ const init = () => {
 	scene.fog = new THREE.FogExp2(0, 0.0002);
 	renderer = new THREE.WebGLRenderer();//{antialias: true});
 	renderer.setSize( sw, sh );
-	// renderer.shadowMap.enabled = true;
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.BasicShadowMap;
 	// renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	// renderer.gammaInput = true;
 	// renderer.gammaOutput = true;
@@ -29,11 +30,11 @@ const init = () => {
 	// const axes = new THREE.AxisHelper()
 	// scene.add( axes );
 
-	const cameraFarAbove = {fov: 90, x: 0, y: 1000, z: 1000};
-	const cameraFront = {fov: 60, x: 0, y: 0, z: -600};
-	const cameraUnderneathRight = {fov: 30, x: -100, y: -200, z: -400};
-	const cameraAbove = {fov: 70, x: 0, y: 500, z: -200};
-	const cameraFrontLeft = {fov: 40, x: 800, y: -250, z: -1000};
+	const cameraFarAbove = {fov: 90, x: 0, y: 100, z: 100};
+	const cameraFront = {fov: 60, x: 0, y: 0, z: -60};
+	const cameraUnderneathRight = {fov: 30, x: -10, y: -20, z: -40};
+	const cameraAbove = {fov: 70, x: 0, y: 50, z: -20};
+	const cameraFrontLeft = {fov: 40, x: 80, y: -25, z: -100};
 	cameras = [
 		cameraFarAbove,
 		cameraFront,
@@ -45,7 +46,6 @@ const init = () => {
 	cameraIndex = 0;
 
 	let cameraInitial = cameras[cameraIndex];
-	con.log("cameraInitial", cameraInitial);
 	camera = new THREE.PerspectiveCamera(cameraInitial.fov, sw / sh, 1, 10000);
 	camFloat = cameraInitial;
 	scene.add(camera);
@@ -53,6 +53,24 @@ const init = () => {
 	var lightAbove = new THREE.DirectionalLight(0xffff80, 1);
 	lightAbove.position.set(-1, 1, -0.25).normalize();
 	scene.add( lightAbove );
+
+	lightAbove.castShadow = true;
+	lightAbove.shadow.camera.near = 1;
+	lightAbove.shadow.camera.far = 70;
+	// pointLight.shadowCameraVisible = true;
+	lightAbove.shadow.bias = 0.1;
+
+
+
+	var pointLight = new THREE.PointLight( 0xff0000, 1, 30 );
+	pointLight.castShadow = true;
+	pointLight.shadow.camera.near = 1;
+	pointLight.shadow.camera.far = 40;
+	// pointLight.shadowCameraVisible = true;
+	pointLight.shadow.bias = 0.01;
+	scene.add( pointLight );
+
+
 
 
 	var spotLight = new THREE.SpotLight(0x903090, 1);
@@ -63,23 +81,37 @@ const init = () => {
 	// spotLight.distance = 2000;
 	// // spotLight.shadow.mapSize.width = 1024;
 	// // spotLight.shadow.mapSize.height = 1024;
-	// // spotLight.shadow.camera.near = 1;
-	// // spotLight.shadow.camera.far = 200;
+	spotLight.shadow.camera.near = 1;
+	spotLight.shadow.camera.far = 50;
 
-	scene.add( spotLight );
+	// scene.add( spotLight );
 	spotLight.position.set(0, 200, 200);
 
 	// // spotLight.lookAt( scene.position );
 
-	// con.log(spotLight);
+
+	var lightAbove2 = new THREE.DirectionalLight(0xffffff, 1);
+	lightAbove2.position.set(0, 0.25, -1).normalize();
+	scene.add( lightAbove2 );
 
 	// var lightHelper = new THREE.SpotLightHelper( spotLight );
 	// scene.add( lightHelper );
 
 
-	// var lightAbove2 = new THREE.DirectionalLight(0xffffff, 1);
-	// lightAbove2.position.set(0, 0.25, -1).normalize();
-	// scene.add( lightAbove2 );
+	// var geometry = new THREE.TorusKnotGeometry( 14, 1, 150, 20 );
+	var geometry = new THREE.CubeGeometry(20, 20, 20, 2);
+	var material = new THREE.MeshPhongMaterial( {
+		color: 0xff0000,
+		shininess: 100,
+		specular: 0x222222
+	} );
+	torusKnot = new THREE.Mesh( geometry, material );
+	torusKnot.position.set( 0, 0, 0 );
+	torusKnot.castShadow = true;
+	torusKnot.receiveShadow = true;
+	scene.add( torusKnot );
+
+
 
 	terrain = new Terrain(scene);
 
@@ -173,7 +205,10 @@ const render = (time) => {
 	// camera.rotation.x = camPos.y / 1000;
 	// // camera.rotation.z = camPos.x / -2000;
 	// camera.rotation.z = (camPos.x - mouse.x * 400) / 2000;
+
 	terrain.update(time);
+
+	torusKnot.rotation.z += 0.01;
 
 	renderer.render( scene, camera );
 
@@ -198,8 +233,8 @@ class Terrain {
 	constructor(scene) {
 		// return;
 
-		this.terrainWidth = 1000;
-		this.terrainDepth = 1000;
+		this.terrainWidth = 100;
+		this.terrainDepth = 100;
 		this.unitsWidth = 6;
 		this.unitsDepth = 6;
 		this.meshZ = 0;
@@ -210,35 +245,62 @@ class Terrain {
 
 		let vertices = geometry.attributes.position.array;
 
-		con.log("terrain vertices:", vertices.length);
+		// con.log("terrain vertices:", vertices.length);
 
 		let heights = [];
 		for (let i = 0, j = 0, l = vertices.length; j < l; i ++, j += 3) {
 			let x = i % this.unitsWidth;
 			let z = Math.floor(i / this.unitsDepth);
-			heights[i] = Math.random() * 200;
+			heights[i] = Math.random() * 20;
 			vertices[j + 1] = heights[i];
 		}
 
 		this.vertices = vertices;
 		this.heights = heights;
 
-		this.mesh = new THREE.Mesh(
-			geometry,
-			// new THREE.MeshLambertMaterial({
-			new THREE.MeshStandardMaterial({
-				// color: 0xff0000,
-				color: 0xd0d0d0,
-				fog: true,
-				// wireframe: true, // render geometry as wireframe. Default is false.
-				// wireframeLinewidth: 5 // — Line thickness. Default is 1.
-				// wireframeLinecap // — Define appearance of line ends. Default is 'round'.
-				// wireframeLinejoin // — Define appearance of line joints. Default is 'round'.
-			})
-		);
 
-		// this.mesh.receiveShadow = true;
+		var diffuseColor = 0x7799aa;
+
+		var material;
+		
+		// var material = new THREE.MeshLambertMaterial({
+		// var material = new THREE.MeshStandardMaterial({
+		// 	// color: 0xff0000,
+		// 	color: diffuseColor,
+		// 	fog: true,
+		// 	// wireframe: true, // render geometry as wireframe. Default is false.
+		// 	// wireframeLinewidth: 5 // — Line thickness. Default is 1.
+		// 	// wireframeLinecap // — Define appearance of line ends. Default is 'round'.
+		// 	// wireframeLinejoin // — Define appearance of line joints. Default is 'round'.
+		// });
+
+		material = new THREE.MeshStandardMaterial( {
+			color: diffuseColor,
+			metalness: 0.9,
+			roughness: 0.6,
+			shading: THREE.SmoothShading,
+			// envMap: 1//alphaIndex % 2 === 0 ? null : reflectionCube
+		} );
+
+		// material = new THREE.MeshBasicMaterial( {
+		// 	// map: imgTexture,
+		// 	color: diffuseColor,
+		// 	reflectivity: 1,
+		// 	shading: THREE.SmoothShading,
+		// 	// envMap: alpha < 0.5 ? reflectionCube : null
+		// } );
+
+
+
+
+
+		this.mesh = new THREE.Mesh(geometry, material);
+
+
+
+		this.mesh.receiveShadow = true;
 		// this.mesh.castShadow = true;
+		this.mesh.position.y = -30;
 
 		// con.log(this.mesh.geometry);
 		scene.add(this.mesh);
@@ -246,15 +308,15 @@ class Terrain {
 
 	update(time) {
 		// return
-		let vertices = this.vertices;
-		let heights = this.heights;
+		// let vertices = this.vertices;
+		// let heights = this.heights;
 
-		for (let i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3) {
-			let x = i % this.unitsWidth;
-			let z = Math.floor(i / this.unitsDepth);
+		// for (let i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3) {
+		// 	let x = i % this.unitsWidth;
+		// 	let z = Math.floor(i / this.unitsDepth);
 
-			// vertices[j + 1] = heights[i % (this.unitsWidth * this.repeatRows)] + offsetY;// + Math.sin(time * 0.001 + x * 0.2) * 30;
-		}
+		// 	// vertices[j + 1] = heights[i % (this.unitsWidth * this.repeatRows)] + offsetY;// + Math.sin(time * 0.001 + x * 0.2) * 30;
+		// }
 
 		// console.log(coords.join(","));
 
@@ -263,13 +325,13 @@ class Terrain {
 		// this.mesh.geometry.verticesNeedUpdate = true;
 
 
-		this.mesh.geometry.attributes.position.needsUpdate = true;
+		// this.mesh.geometry.attributes.position.needsUpdate = true;
 
 		// con.log(this.mesh.geometry);
 
-		// this.meshZ += 10;
+		this.meshZ += 0.01;
 		// this.meshZClamped = this.meshZ;
-		// this.mesh.position.z = 1000 - this.meshZClamped;
+		this.mesh.rotation.y = this.meshZ;
 	}
 }
 
